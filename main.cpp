@@ -55,10 +55,11 @@ int main(int argc, char *argv[])
     molModel.select(Molecule<Atom>::CaSelector(), modelAlpha);
     molTarget.select(Molecule<Atom>::CaSelector(), targetAlpha);
 
-    GeomHash <Vector3,int> gHash(3,epsilon);
+    GeomHash<Vector3, int> gHash(3, epsilon);
 
-    for(unsigned int i=0;i<modelAlpha.size();i++) {
-        gHash.insert(modelAlpha[i].position(),i);
+    for (unsigned int i = 0; i < modelAlpha.size(); i++)
+    {
+        gHash.insert(modelAlpha[i].position(), i);
     }
 
 
@@ -91,8 +92,9 @@ int main(int argc, char *argv[])
         Triangle trigModel = Triangle(backBoneModel[i].position(), backBoneModel[i + 1].position(),
                                       backBoneModel[i + 2].position());
 
-        if (i %30 ==0){
-            cout << "did "<< i/3 << " trigModel iterations " << endl;
+        if (i % 30 == 0)
+        {
+            cout << "did " << i / 3 << " trigModel iterations " << endl;
         }
 
 
@@ -109,31 +111,31 @@ int main(int argc, char *argv[])
 
             RigidTrans3 curTrans = trigModel | trigTarget;
 
-            molModel.select(Molecule<Atom>::CaSelector(), modelAlpha);
-            molTarget.select(Molecule<Atom>::CaSelector(), targetAlpha);
-
-            targetAlpha *= curTrans;
             Match match;
             HashResult<int> result;
-            for(unsigned int f=0;f< targetAlpha.size();f++) {
+            for (unsigned int f = 0; f < targetAlpha.size(); f++)
+            {
+                Vector3 mol_atom = curTrans * targetAlpha[i].position();
 
-                Vector3 mol_atom = targetAlpha[f].position();
                 gHash.query(mol_atom, epsilon, result);
                 HashResult<int>::iterator x;
-                for(x = result.begin(); x != result.end(); x++) {
-                    if(mol_atom.dist(targetAlpha[*x].position()) <= epsilon) {
-                        float score = (1 / (1+(modelAlpha[f].position() | targetAlpha[ *x ])));
-                        match.add( *x , f, score, score );
+                for (x = result.begin(); x != result.end(); x++)
+                {
+                    if (mol_atom.dist(targetAlpha[*x].position()) <= epsilon)
+                    {
+                        float score = (1 / (1 + (modelAlpha[f].position() | targetAlpha[*x])));
+                        match.add(*x, f, score, score);
                     }
                 }
                 result.clear();
             }
             //calculates transformation that is a little better than "rotation"
-            match.calculateBestFit(molTarget, molModel);
+            match.calculateBestFit(modelAlpha, targetAlpha);
 
-            if(bestAlignSize < match.size() ){
+            if (bestAlignSize < match.size())
+            {
                 bestAlignSize = match.size();
-                bestTrans=match.rigidTrans();
+                bestTrans = match.rigidTrans();
             }
         }
 

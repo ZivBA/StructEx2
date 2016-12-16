@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     }
 
     //********Parameters********************
-    double epsilon = atof(argv[1]);
+    const float epsilon = (const float) atof(argv[1]);
 
     cout << "Distance threshold: " << epsilon << endl;
 
@@ -54,6 +54,12 @@ int main(int argc, char *argv[])
     Molecule<Atom> modelAlpha, targetAlpha;
     molModel.select(Molecule<Atom>::CaSelector(), modelAlpha);
     molTarget.select(Molecule<Atom>::CaSelector(), targetAlpha);
+
+    GeomHash <Vector3,int> gHash(3,epsilon);
+
+    for(unsigned int i=0;i<modelAlpha.size();i++) {
+        gHash.insert(modelAlpha[i].position(),i);
+    }
 
 
     unsigned long scoreY = modelAlpha.size() + 1;
@@ -85,7 +91,7 @@ int main(int argc, char *argv[])
         Triangle trigModel = Triangle(backBoneModel[i].position(), backBoneModel[i + 1].position(),
                                       backBoneModel[i + 2].position());
 
-        if (true){
+        if (i %30 ==0){
             cout << "did "<< i/3 << " trigModel iterations " << endl;
         }
 
@@ -93,63 +99,42 @@ int main(int argc, char *argv[])
         for (unsigned int j = 0; j < backBoneTarget.size(); j += 3)
         {
 
-            if (j % 100 ==0){
-                cout << "did "<< j/3 << " trigTarget iterations " << endl;
-            }
+//            if (j % 360 ==0){
+//                cout << "did "<< j/3 << " trigTarget iterations " << endl;
+//            }
 
             Triangle trigTarget = Triangle(backBoneTarget[j].position(),
                                            backBoneTarget[j + 1].position(),
                                            backBoneTarget[j + 2].position());
 
             RigidTrans3 curTrans = trigModel | trigTarget;
-            molTarget.select(Molecule<Atom>::BackboneSelector(), tempTarget);
-
 
             molModel.select(Molecule<Atom>::CaSelector(), modelAlpha);
             molTarget.select(Molecule<Atom>::CaSelector(), targetAlpha);
 
             targetAlpha *= curTrans;
+            Match match;
+            HashResult<int> result;
+            for(unsigned int f=0;f< targetAlpha.size();f++) {
 
-
-
-
-
-            for (unsigned int k = 1; k < scoreY; k++)
-            {
-
-                for (unsigned int l = 1; l < scoreX; l++)
-                {
-
-
-                    float dist = modelAlpha[k - 1] | targetAlpha[l - 1];
-                    double match = dist < epsilon ? (epsilon - dist) : 0;
-
-                    int traceScore = scoreMatrix[k][l] == match + scoreMatrix[k - 1][l - 1] ? 1 : 0;
-
-                    double score = max3(scoreMatrix[k - 1][l], scoreMatrix[k][l - 1],
-                                       match + scoreMatrix[k - 1][l - 1]);
-
-                    if (score == scoreMatrix[k - 1][l]){
-                        scoreMatrix[k][l] = score;
-                        backMatrix[k][l] = backMatrix[k-1][l];
-                    } else if (score == scoreMatrix[k][l-1]) {
-                        scoreMatrix[k][l] = score;
-                        backMatrix[k][l] = backMatrix[k][l-1];
-                    } else{
-                        scoreMatrix[k][l] = score;
-                        backMatrix[k][l] = backMatrix[k-1][l-1]+traceScore;
+                Vector3 mol_atom = targetAlpha[f].position();
+                gHash.query(mol_atom, epsilon, result);
+                HashResult<int>::iterator x;
+                for(x = result.begin(); x != result.end(); x++) {
+                    if(mol_atom.dist(targetAlpha[*x].position()) <= epsilon) {
+                        float score = (1 / (1+(modelAlpha[f].position() | targetAlpha[ *x ])));
+                        match.add( *x , f, score, score );
                     }
-
                 }
+                result.clear();
             }
+            //calculates transformation that is a little better than "rotation"
+            match.calculateBestFit(molTarget, molModel);
 
-            if (backMatrix[scoreY-1][scoreX-1] > bestAlignSize){
-                bestTrans = curTrans;
-                bestAlignSize = backMatrix[scoreY-1][scoreX-1];
-
+            if(bestAlignSize < match.size() ){
+                bestAlignSize = match.size();
+                bestTrans=match.rigidTrans();
             }
-
-
         }
 
     }

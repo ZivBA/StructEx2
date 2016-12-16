@@ -87,6 +87,8 @@ int main(int argc, char *argv[])
 
     int bestAlignSize = 0;
 
+    float RMSD = 0.0;
+
     for (unsigned int i = 0; i < backBoneModel.size(); i += 3)
     {
         Triangle trigModel = Triangle(backBoneModel[i].position(), backBoneModel[i + 1].position(),
@@ -121,33 +123,35 @@ int main(int argc, char *argv[])
                 HashResult<int>::iterator x;
                 for (x = result.begin(); x != result.end(); x++)
                 {
-                    if (mol_atom.dist(targetAlpha[*x].position()) <= epsilon)
+                    if (mol_atom.dist(modelAlpha[*x].position()) <= epsilon)
                     {
-                        float score = (1 / (1 + (modelAlpha[f].position() | targetAlpha[*x])));
+                        float score = (1 / (1 + (targetAlpha[f].position() | modelAlpha[*x])));
                         match.add(*x, f, score, score);
                     }
                 }
                 result.clear();
             }
             //calculates transformation that is a little better than "rotation"
-            match.calculateBestFit(modelAlpha, targetAlpha);
+            match.calculateBestFit(targetAlpha,modelAlpha);
 
             if (bestAlignSize < match.size())
             {
                 bestAlignSize = match.size();
-                bestTrans = match.rigidTrans();
+                bestTrans = curTrans;
+
             }
         }
 
     }
 
-
+    Match match;
     molTarget *= bestTrans;
-
+    RMSD = match.calculateRMSD(molModel,molTarget);
+    cout << bestTrans << endl;
     ofstream myfile;
-    myfile.open("transformed.pdb");
+    myfile.open("/home/rooty/transformed.pdb");
     myfile << molTarget;
     myfile.close();
-
+    cout << bestAlignSize << " " << RMSD << " " << bestTrans << endl;
     cout << overallTime << endl;
 }

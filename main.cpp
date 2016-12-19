@@ -11,6 +11,7 @@
 #include <iostream>
 #include <Triangle.h>
 
+
 int main(int argc, char *argv[])
 {
     Timer overallTime("Overall Run Time");
@@ -51,36 +52,36 @@ int main(int argc, char *argv[])
     molTarget.select(Molecule<Atom>::BackboneSelector(), backBoneTarget);
 
 
-    Molecule<Atom> modelAlpha, targetAlpha;
-    molModel.select(Molecule<Atom>::CaSelector(), modelAlpha);
-    molTarget.select(Molecule<Atom>::CaSelector(), targetAlpha);
+    Molecule<Atom> alphaModel, alphaTarget;
+    molModel.select(Molecule<Atom>::CaSelector(), alphaModel);
+    molTarget.select(Molecule<Atom>::CaSelector(), alphaTarget);
 
     GeomHash<Vector3, int> gHash(3, epsilon);
 
-    for (unsigned int i = 0; i < modelAlpha.size(); i++)
+    for (unsigned int i = 0; i < alphaModel.size(); i++)
     {
-        gHash.insert(modelAlpha[i].position(), i);
+        gHash.insert(alphaModel[i].position(), i);
     }
 
 
-    unsigned long scoreY = modelAlpha.size() + 1;
-    unsigned long scoreX = targetAlpha.size() + 1;
-    // scoring matrix for sequence alignment
-    double scoreMatrix[scoreY][scoreX];
-    // backstep matrix
-    int backMatrix[scoreY][scoreX];
-
-    for (int l = 0; l < scoreY; l++)
-    {
-        scoreMatrix[l][0] = 0.0;
-        backMatrix[l][0] = 0;
-    }
-
-    for (int l = 0; l < scoreX; l++)
-    {
-        scoreMatrix[0][l] = 0.0;
-        backMatrix[0][l] = 0;
-    }
+//    unsigned long scoreY = alphaModel.size() + 1;
+//    unsigned long scoreX = alphaTarget.size() + 1;
+//    // scoring matrix for sequence alignment
+//    double scoreMatrix[scoreY][scoreX];
+//    // backstep matrix
+//    int backMatrix[scoreY][scoreX];
+//
+//    for (int l = 0; l < scoreY; l++)
+//    {
+//        scoreMatrix[l][0] = 0.0;
+//        backMatrix[l][0] = 0;
+//    }
+//
+//    for (int l = 0; l < scoreX; l++)
+//    {
+//        scoreMatrix[0][l] = 0.0;
+//        backMatrix[0][l] = 0;
+//    }
 
 
     RigidTrans3 bestTrans;
@@ -89,8 +90,11 @@ int main(int argc, char *argv[])
 
     float RMSD = 0.0;
 
+
+
     for (unsigned int i = 0; i < backBoneModel.size(); i += 3)
     {
+
         Triangle trigModel = Triangle(backBoneModel[i].position(), backBoneModel[i + 1].position(),
                                       backBoneModel[i + 2].position());
 
@@ -107,6 +111,9 @@ int main(int argc, char *argv[])
 //                cout << "did "<< j/3 << " trigTarget iterations " << endl;
 //            }
 
+            Molecule<Atom> target4RMSD;
+            Molecule<Atom> model4RMSD;
+
             Triangle trigTarget = Triangle(backBoneTarget[j].position(),
                                            backBoneTarget[j + 1].position(),
                                            backBoneTarget[j + 2].position());
@@ -115,29 +122,40 @@ int main(int argc, char *argv[])
 
             Match match;
             HashResult<int> result;
-            for (unsigned int f = 0; f < targetAlpha.size(); f++)
+            int lastIndex = 0;
+            int lastMatchSize = 0;
+
+            for (unsigned int f = 0; f < alphaTarget.size(); f++)
             {
-                Vector3 mol_atom = curTrans * targetAlpha[i].position();
+                Vector3 mol_atom = curTrans * alphaTarget[f].position();
 
                 gHash.query(mol_atom, epsilon, result);
                 HashResult<int>::iterator x;
+
                 for (x = result.begin(); x != result.end(); x++)
                 {
-                    if (mol_atom.dist(modelAlpha[*x].position()) <= epsilon)
+                    if (mol_atom.dist(alphaModel[*x].position()) <= epsilon)
                     {
-                        float score = (1 / (1 + (targetAlpha[f].position() | modelAlpha[*x])));
-                        match.add(*x, f, score, score);
+                        float score = (1 / (1 + (alphaTarget[f].position() | alphaModel[*x])));
+                        if (*x >= lastIndex)
+                        {
+                            lastIndex = *x;
+                            match.add(*x, f, score, score);
+                            model4RMSD.add(alphaModel[*x]);
+                            target4RMSD.add(Atom(mol_atom, f));
+                        }
                     }
                 }
                 result.clear();
             }
             //calculates transformation that is a little better than "rotation"
-            match.calculateBestFit(targetAlpha,modelAlpha);
+            match.calculateBestFit(alphaTarget,alphaModel);
 
             if (bestAlignSize < match.size())
             {
                 bestAlignSize = match.size();
                 bestTrans = curTrans;
+                RMSD = match.calculateRMSD(model4RMSD, target4RMSD);
 
             }
         }
@@ -146,8 +164,9 @@ int main(int argc, char *argv[])
 
     Match match;
     molTarget *= bestTrans;
-    RMSD = match.calculateRMSD(molModel,molTarget);
-    cout << bestTrans << endl;
+//    match.calculateBestFit(molModel,molTarget);
+//    RMSD = match.calculateRMSD(molModel,molTarget);
+//    cout << bestTrans << endl;
     ofstream myfile;
     myfile.open("/home/rooty/transformed.pdb");
     myfile << molTarget;

@@ -103,9 +103,6 @@ int main(int argc, char *argv[])
         for (unsigned int j = 0; j < backBoneTarget.size(); j += 3)
         {
 
-//            if (j % 360 ==0){
-//                cout << "did "<< j/3 << " trigTarget iterations " << endl;
-//            }
 
             Triangle trigTarget = Triangle(backBoneTarget[j].position(),
                                            backBoneTarget[j + 1].position(),
@@ -117,7 +114,7 @@ int main(int argc, char *argv[])
             HashResult<int> result;
             for (unsigned int f = 0; f < targetAlpha.size(); f++)
             {
-                Vector3 mol_atom = curTrans * targetAlpha[i].position();
+                Vector3 mol_atom = curTrans * targetAlpha[f].position();
 
                 gHash.query(mol_atom, epsilon, result);
                 HashResult<int>::iterator x;
@@ -131,8 +128,6 @@ int main(int argc, char *argv[])
                 }
                 result.clear();
             }
-            //calculates transformation that is a little better than "rotation"
-            match.calculateBestFit(targetAlpha,modelAlpha);
 
             if (bestAlignSize < match.size())
             {
@@ -146,12 +141,11 @@ int main(int argc, char *argv[])
 
     Match match;
     molTarget *= bestTrans;
-    RMSD = match.calculateRMSD(molModel,molTarget);
-    cout << bestTrans << endl;
+    //TODO - calculate RMSD somehow
     ofstream myfile;
     myfile.open("/home/rooty/transformed.pdb");
     myfile << molTarget;
     myfile.close();
-    cout << bestAlignSize << " " << RMSD << " " << bestTrans << endl;
+    cout << bestAlignSize << " " << /*RMSD <<*/ " " << bestTrans << endl;
     cout << overallTime << endl;
 }

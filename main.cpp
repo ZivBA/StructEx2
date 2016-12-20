@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                     if (mol_atom.dist(alphaModel[*x].position()) <= epsilon)
                     {
                         float score = (1 / (1 + (alphaTarget[f].position() | alphaModel[*x])));
-                        if (/* *x >= lastIndex */ true)
+                        if (*x >= lastIndex)
                         {
                             lastIndex = *x;
                             match.add(*x, f, score, score);

@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     //********Parameters********************
     const float epsilon = (const float) atof(argv[1]);
 
-    cout << "Distance threshold: " << epsilon << endl;
+//    cout << "Distance threshold: " << epsilon << endl;
 
     Molecule<Atom> molModel, molTarget, backBoneModel, backBoneTarget, tempTarget;
 
@@ -92,19 +92,19 @@ int main(int argc, char *argv[])
 
 
 
-    for (unsigned int i = 0; i < backBoneModel.size(); i += 3)
+    for (unsigned int i = 0; i < backBoneModel.size(); i += 4)
     {
 
         Triangle trigModel = Triangle(backBoneModel[i].position(), backBoneModel[i + 1].position(),
                                       backBoneModel[i + 2].position());
 
-        if (i % 30 == 0)
-        {
-            cout << "did " << i / 3 << " trigModel iterations " << endl;
-        }
+//        if (i % 30 == 0)
+//        {
+//            cout << "did " << i / 3 << " trigModel iterations " << endl;
+//        }
 
 
-        for (unsigned int j = 0; j < backBoneTarget.size(); j += 3)
+        for (unsigned int j = 0; j < backBoneTarget.size(); j += 4)
         {
 
 //            if (j % 360 ==0){
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
                     if (mol_atom.dist(alphaModel[*x].position()) <= epsilon)
                     {
                         float score = (1 / (1 + (alphaTarget[f].position() | alphaModel[*x])));
-                        if (*x >= lastIndex)
+                        if (/* *x >= lastIndex */ true)
                         {
                             lastIndex = *x;
                             match.add(*x, f, score, score);
@@ -149,7 +149,8 @@ int main(int argc, char *argv[])
                 result.clear();
             }
             //calculates transformation that is a little better than "rotation"
-            match.calculateBestFit(alphaTarget,alphaModel);
+
+//            match.calculateBestFit(alphaTarget,alphaModel);
 
             if (bestAlignSize < match.size())
             {
@@ -168,7 +169,7 @@ int main(int argc, char *argv[])
 //    RMSD = match.calculateRMSD(molModel,molTarget);
 //    cout << bestTrans << endl;
     ofstream myfile;
-    myfile.open("/home/rooty/transformed.pdb");
+    myfile.open("./transformed.pdb");
     myfile << molTarget;
     myfile.close();
     cout << bestAlignSize << " " << RMSD << " " << bestTrans << endl;
